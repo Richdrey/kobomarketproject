@@ -7,6 +7,9 @@ const userSchema = new Schema(
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    isverified: { type: Boolean, default: false },
+    otp: { type: String, default: null },
+    otpexpiredat: { type: Date, default: null },
   },
   { timestamps: true, versionKey: false }
 );
