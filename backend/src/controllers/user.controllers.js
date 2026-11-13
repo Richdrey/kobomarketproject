@@ -1,6 +1,7 @@
 const User = require('../models/user.models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sendEmail } = require('../helper/email');
 
 
 
@@ -14,6 +15,7 @@ const signup = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (user) {
+      //console.log("Matched user from DB:", user);
       return res.status(400).json({ message: 'User already exists' });
     }
 
@@ -61,6 +63,8 @@ const sendOtp = async (req, res) => {
     user.otp = otp;
     user.otpexpiredat = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
+
+   await sendEmail(user.email, 'Your OTP Code', `Your OTP code is ${otp}`);
 
     res.status(200).json({ message: 'OTP sent successfully', otp: otp, expiresAt: user.otpexpiredat });
   } catch (e) {
