@@ -4,6 +4,7 @@ const pool = require('../configs/postgres');
 const ledger = require('../services/ledger.service');
 const orderService = require('../services/order.service');
 const escrowService = require('../services/escrow.service');
+const notificationService = require('../services/notification.service');
 
 const checkout = asyncHandler(async (req, res) => {
   const key = req.get('Idempotency-Key');
@@ -34,6 +35,7 @@ const checkout = asyncHandler(async (req, res) => {
   }
 
   const result = await orderService.checkout(req.user._id, key, req.body || {});
+  notificationService.publishOrderPlaced(result.orderId, req.user._id);
   res.status(201).json({ success: true, data: result });
 });
 
@@ -84,11 +86,13 @@ const cancel = asyncHandler(async (req, res) => {
 
 const ship = asyncHandler(async (req, res) => {
   const result = await escrowService.shipSubOrder(req.params.id, req.user._id);
+  notificationService.publishOrderShipped(req.params.id);
   res.json({ success: true, data: result });
 });
 
 const confirmDelivery = asyncHandler(async (req, res) => {
   const result = await escrowService.confirmDelivery(req.params.id, req.user._id);
+  if (result.status === 'COMPLETED') notificationService.publishFundsReleased(req.params.id);
   res.json({ success: true, data: result });
 });
 

@@ -35,6 +35,30 @@ class PaystackProvider {
       method: 'GET'
     });
   }
+
+  async transfer({ amountKobo, reference, bankDetails }) {
+    const recipient = await this.request('https://api.paystack.co/transferrecipient', {
+      method: 'POST',
+      body: JSON.stringify({
+        type: 'nuban',
+        name: bankDetails.accountName,
+        account_number: bankDetails.accountNumber,
+        bank_code: bankDetails.bankCode,
+        currency: 'NGN'
+      })
+    });
+    const transfer = await this.request('https://api.paystack.co/transfer', {
+      method: 'POST',
+      body: JSON.stringify({
+        source: 'balance',
+        amount: amountKobo,
+        recipient_code: recipient.recipient_code,
+        reason: 'KoboMarket vendor payout',
+        reference
+      })
+    });
+    return { reference: transfer.reference || transfer.transfer_code, status: transfer.status };
+  }
 }
 
 class MockPaymentProvider {
@@ -67,6 +91,15 @@ class MockPaymentProvider {
     payment.status = 'success';
     this.payments.set(reference, payment);
     return payment;
+  }
+
+  async transfer({ amountKobo, reference }) {
+    if (process.env.MOCK_PAYOUT_FAIL === 'true') {
+      const error = new Error('Mock payout provider reported a transfer failure');
+      error.code = 'MOCK_PAYOUT_FAILED';
+      throw error;
+    }
+    return { reference, amount: amountKobo, status: 'success' };
   }
 }
 

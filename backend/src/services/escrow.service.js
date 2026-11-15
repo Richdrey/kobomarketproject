@@ -1,6 +1,7 @@
 const pool = require('../configs/postgres');
 const ledger = require('./ledger.service');
 const { AppError } = require('../middleware/errorHandler');
+const notificationService = require('./notification.service');
 
 async function releaseLockedSubOrder(client, subOrder) {
   const dispute = await client.query(
@@ -182,6 +183,7 @@ async function completeSubOrder(subOrderId) {
     }
     const completed = await releaseLockedSubOrder(client, result.rows[0]);
     await client.query('COMMIT');
+    if (completed) notificationService.publishFundsReleased(subOrderId);
     return completed;
   } catch (error) {
     await client.query('ROLLBACK');

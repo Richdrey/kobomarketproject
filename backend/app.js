@@ -19,6 +19,10 @@ const cartRoutes = require('./src/routes/cart.routes');
 const paymentRoutes = require('./src/routes/payment.routes');
 const paymentController = require('./src/controllers/payment.controller');
 const orderRoutes = require('./src/routes/order.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
+const disputeRoutes = require('./src/routes/dispute.routes');
+const payoutRoutes = require('./src/routes/payout.routes');
+const adminRoutes = require('./src/routes/admin.routes');
 const userController = require('./src/controllers/user.controllers-v2');
 const { authenticate } = require('./src/middleware/auth');
 
@@ -74,9 +78,14 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/admin/vendors', adminVendorRoutes);
 app.use('/api/v1', orderRoutes);
+app.use('/api/v1', disputeRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/payouts', payoutRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 if (process.env.START_BACKGROUND_JOBS === 'true') {
   require('./src/jobs/auto-complete.job').startAutoCompleteJob();
+  require('./src/jobs/payout.job').startPayoutJob();
 }
 
 const openApiSpec = swaggerJsdoc({
