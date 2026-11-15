@@ -16,6 +16,9 @@ const vendorRoutes = require('./src/routes/vendor.routes');
 const productRoutes = require('./src/routes/product.routes');
 const adminVendorRoutes = require('./src/routes/admin-vendor.routes');
 const cartRoutes = require('./src/routes/cart.routes');
+const paymentRoutes = require('./src/routes/payment.routes');
+const paymentController = require('./src/controllers/payment.controller');
+const orderRoutes = require('./src/routes/order.routes');
 const userController = require('./src/controllers/user.controllers-v2');
 const { authenticate } = require('./src/middleware/auth');
 
@@ -40,7 +43,12 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({
+  limit: '1mb',
+  verify(req, res, buffer) {
+    if (req.originalUrl.startsWith('/api/v1/webhooks/paystack')) req.rawBody = Buffer.from(buffer);
+  }
+}));
 
 app.get('/health', asyncHandler(async (req, res) => {
   const checks = {
@@ -57,11 +65,19 @@ app.get('/api/v1/users/me', authenticate, userController.getMe);
 app.patch('/api/v1/users/me', authenticate, userController.validateProfileUpdate, userController.updateMe);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/wallet', paymentRoutes);
+app.post('/api/v1/webhooks/paystack', paymentController.paystackWebhook);
+app.post('/api/v1/mock-payments/:reference/succeed', paymentController.mockPaymentSucceeded);
 app.use('/api/v1/admin/settings/exchange-rates', exchangeRateRoutes);
 app.use('/api/v1/vendors', vendorRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/admin/vendors', adminVendorRoutes);
+app.use('/api/v1', orderRoutes);
+
+if (process.env.START_BACKGROUND_JOBS === 'true') {
+  require('./src/jobs/auto-complete.job').startAutoCompleteJob();
+}
 
 const openApiSpec = swaggerJsdoc({
   definition: {
