@@ -1,20 +1,15 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
-
-const url = process.env.MONGO_URL;
-
-
 
 const connectDB = async () => {
-  try {
-    await mongoose.connect(url);
-    console.log(' connected to MongoDB successfully');
-  } catch (e) {
-    console.error(e);
-    process.exit(1);
+  if (!process.env.MONGO_URL) {
+    throw new Error('MONGO_URL is required');
   }
-};
 
-//connectDB();
+  await mongoose.connect(process.env.MONGO_URL);
+  await mongoose.connection.collection('users').updateMany(
+    { isVerified: { $exists: false }, isverified: true },
+    { $set: { isVerified: true } }
+  );
+};
 
 module.exports = connectDB;

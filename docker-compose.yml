@@ -1,0 +1,74 @@
+services:
+  api:
+    build:
+      context: ./backend
+    command: ["sh", "-c", "npm run migrate && npm start"]
+    environment:
+      NODE_ENV: development
+      PORT: 3020
+      MONGO_URL: mongodb://mongo:27017/kobomarket
+      DATABASE_URL: postgresql://kobomarket:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/kobomarket
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET}
+      BANK_DETAILS_ENCRYPTION_KEY: ${BANK_DETAILS_ENCRYPTION_KEY:?Set BANK_DETAILS_ENCRYPTION_KEY}
+      APP_BASE_URL: http://localhost:3020
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: 1025
+      EMAIL_USER: dev
+      EMAIL_PASSWORD: dev
+      EMAIL_SECURE: "false"
+      SEED_PASSWORD: ${SEED_PASSWORD:-}
+    ports:
+      - "3020:3020"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3020/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:8
+    command: ["mongod", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: kobomarket
+      POSTGRES_USER: kobomarket
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kobomarket -d kobomarket"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  mongo-data:
+  postgres-data:
