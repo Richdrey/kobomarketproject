@@ -86,7 +86,7 @@ const topVendorsReport = asyncHandler(async (req, res) => {
        FROM sub_orders s
        JOIN order_items i ON i.sub_order_id = s.id
       WHERE s.status = 'COMPLETED'
-        AND s.created_at >= date_trunc('month', NOW())
+        AND s.completed_at >= date_trunc('month', NOW())
       GROUP BY s.vendor_id
       ORDER BY SUM(i.unit_price_kobo::numeric * i.quantity) DESC
       LIMIT 10`

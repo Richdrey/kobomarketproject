@@ -147,7 +147,12 @@ async function resolveDispute(disputeId, adminId, { resolution, note, refundKobo
       [dispute.id, resolution, note, String(adminId)]
     );
     const nextStatus = resolution === 'FULL_REFUND' ? 'CANCELLED' : 'COMPLETED';
-    await client.query('UPDATE sub_orders SET status = $2 WHERE id = $1', [dispute.sub_order_id, nextStatus]);
+    await client.query(
+      `UPDATE sub_orders SET status = $2,
+          completed_at = CASE WHEN $2 = 'COMPLETED' THEN NOW() ELSE completed_at END
+        WHERE id = $1`,
+      [dispute.sub_order_id, nextStatus]
+    );
     if (nextStatus === 'COMPLETED') {
       await client.query(
         `UPDATE orders SET status = 'COMPLETED'

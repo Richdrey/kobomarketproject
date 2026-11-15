@@ -52,7 +52,7 @@ async function releaseLockedSubOrder(client, subOrder) {
     },
     entries
   });
-  await client.query("UPDATE sub_orders SET status = 'COMPLETED' WHERE id = $1", [subOrder.id]);
+  await client.query("UPDATE sub_orders SET status = 'COMPLETED', completed_at = NOW() WHERE id = $1", [subOrder.id]);
   await client.query(
     `UPDATE orders SET status = 'COMPLETED'
       WHERE id = $1

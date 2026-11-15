@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const documentedPaths = require('./src/docs/openapi.paths');
 const mongoose = require('mongoose');
 const pool = require('./src/configs/postgres');
 const { requestLogger, logger } = require('./src/middleware/logger');
@@ -97,6 +98,7 @@ const openApiSpec = swaggerJsdoc({
       description: 'Backend API for the KoboMarket multi-vendor marketplace.'
     },
     servers: [{ url: '/api/v1' }],
+    paths: documentedPaths,
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
