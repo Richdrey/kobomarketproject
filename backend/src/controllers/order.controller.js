@@ -58,6 +58,26 @@ const list = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { orders: result.rows } });
 });
 
+const vendorList = asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    `SELECT s.id::text AS sub_order_id, s.order_id::text, s.status, s.shipped_at, s.created_at,
+            o.buyer_id, COALESCE(SUM(i.unit_price_kobo::numeric * i.quantity), 0)::text AS total_kobo,
+            COALESCE(jsonb_agg(jsonb_build_object(
+              'productId', i.product_id, 'variantId', i.variant_id, 'quantity', i.quantity,
+              'unitPriceKobo', i.unit_price_kobo::text
+            )) FILTER (WHERE i.id IS NOT NULL), '[]'::jsonb) AS items
+       FROM sub_orders s
+       JOIN orders o ON o.id = s.order_id
+       LEFT JOIN order_items i ON i.sub_order_id = s.id
+      WHERE s.vendor_id = $1 AND ($2::text IS NULL OR s.status = $2)
+      GROUP BY s.id, o.id
+      ORDER BY s.created_at DESC
+      LIMIT $3`,
+    [String(req.user._id), req.query.status || null, req.query.limit]
+  );
+  res.json({ success: true, data: { subOrders: result.rows } });
+});
+
 const getById = asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT o.id::text, o.status, o.currency, o.created_at,
@@ -96,4 +116,4 @@ const confirmDelivery = asyncHandler(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
-module.exports = { checkout, list, getById, cancel, ship, confirmDelivery };
+module.exports = { checkout, list, vendorList, getById, cancel, ship, confirmDelivery };

@@ -11,8 +11,10 @@ async function requestPayout(vendorId, amountKobo, idempotencyKey) {
   if (!idempotencyKey || idempotencyKey.length > 200) {
     throw new AppError(400, 'IDEMPOTENCY_KEY_REQUIRED', 'A valid Idempotency-Key header is required');
   }
-  if (!/^[1-9]\d{0,17}$/.test(amountKobo) || BigInt(amountKobo) < 100000n) {
-    throw new AppError(400, 'INVALID_PAYOUT_AMOUNT', 'Minimum payout is 100000 kobo');
+  const minimum = process.env.PAYOUT_MINIMUM_KOBO || '100000';
+  if (!/^[1-9]\d{0,17}$/.test(minimum)) throw new Error('PAYOUT_MINIMUM_KOBO must be a positive integer');
+  if (!/^[1-9]\d{0,17}$/.test(amountKobo) || BigInt(amountKobo) < BigInt(minimum)) {
+    throw new AppError(400, 'INVALID_PAYOUT_AMOUNT', `Minimum payout is ${minimum} kobo`);
   }
   const store = await Store.findOne({ vendorId, status: 'approved' }).select('+bankDetailsEncrypted').lean();
   if (!store?.bankDetailsEncrypted) {
