@@ -230,4 +230,4 @@ async function listPayouts(vendorId, limit = 50) {
   return result.rows;
 }
 
-module.exports = { requestPayout, processPendingPayouts, listPayouts };
+module.exports = { requestPayout, settlePayout, processPendingPayouts, listPayouts };
