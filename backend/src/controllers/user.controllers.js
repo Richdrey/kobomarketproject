@@ -43,6 +43,15 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const loginTime = new Date().toUTCString();
+
+    await sendEmail(
+      user.email,
+      'New login to your KoboMarket account',
+      'loginAlert',
+      { firstName: user.firstName, loginTime },
+      `Hi ${user.firstName}, a sign-in to your KoboMarket account occurred at ${loginTime}. If this wasn't you, change your password immediately.`
+    );
 
     res.status(200).json({ message: 'Login successful', user, token: token });
   } catch (e) {
@@ -64,7 +73,18 @@ const sendOtp = async (req, res) => {
     user.otpexpiredat = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-   await sendEmail(user.email, 'Your OTP Code', `Your OTP code is ${otp}`);
+    await sendEmail(
+      user.email,
+      'Verify your KoboMarket email',
+      'otp',
+      {
+        heading: 'Verify your email address',
+        message: 'Use this code to verify your KoboMarket account.',
+        otp,
+        expirationMinutes: 10
+      },
+      `Your KoboMarket verification code is ${otp}. It expires in 10 minutes.`
+    );
 
     res.status(200).json({ message: 'OTP sent successfully', otp: otp, expiresAt: user.otpexpiredat });
   } catch (e) {
@@ -126,6 +146,19 @@ const resendOtp = async (req, res) => {
     user.otpexpiredat = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
+    await sendEmail(
+      user.email,
+      'Your KoboMarket verification code',
+      'otp',
+      {
+        heading: 'Your verification code',
+        message: 'Use this code to verify your KoboMarket account.',
+        otp,
+        expirationMinutes: 10
+      },
+      `Your KoboMarket verification code is ${otp}. It expires in 10 minutes.`
+    );
+
     res.status(200).json({ message: 'OTP resent successfully', otp: otp, expiresAt: user.otpexpiredat });
   } catch (e) {
     console.log(e);
@@ -149,6 +182,19 @@ const forgotPassword = async (req, res) => {
     user.otp = otp;
     user.otpexpiredat = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
+
+    await sendEmail(
+      user.email,
+      'Reset your KoboMarket password',
+      'otp',
+      {
+        heading: 'Reset your password',
+        message: 'Use this code to reset your KoboMarket password.',
+        otp,
+        expirationMinutes: 10
+      },
+      `Your KoboMarket password reset code is ${otp}. It expires in 10 minutes.`
+    );
 
     res.status(200).json({ message: 'Password reset instructions sent to your email' });
   } catch (e) {
