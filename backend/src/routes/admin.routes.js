@@ -19,6 +19,10 @@ router.patch('/users/:id/freeze', validate(Joi.object({
 router.get('/wallets/:id/ledger', validate(Joi.object({
   id: Joi.string().pattern(/^[1-9]\d{0,18}$/).required()
 }), 'params'), controller.getWalletLedger);
+router.get('/transactions', validate(Joi.object({
+  limit: Joi.number().integer().min(1).max(100).default(50),
+  before: Joi.string().pattern(/^[1-9]\d{0,18}$/)
+}).unknown(false), 'query'), controller.listTransactions);
 router.patch('/settings/commission', validate(Joi.object({
   rateBps: Joi.number().integer().min(0).max(10000).required()
 }).unknown(false)), controller.setCommission);

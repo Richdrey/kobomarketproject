@@ -33,10 +33,19 @@ describe('wallet funding webhook', () => {
     pool.connect.mockResolvedValue(client);
     ledger.postTransaction.mockResolvedValue({ id: 'tx-1' });
     await mockProvider.initialize({ email: 'buyer@example.com', amountKobo: '4500', reference: 'KMB-test' });
+    mockProvider.markSuccessful('KMB-test');
+    const rawBody = Buffer.from(JSON.stringify({
+      event: 'charge.success',
+      data: { reference: 'KMB-test' }
+    }));
+    const signature = crypto.createHmac('sha512', process.env.MOCK_PAYSTACK_SECRET)
+      .update(rawBody)
+      .digest('hex');
+    const event = JSON.parse(rawBody.toString('utf8'));
 
-    await expect(paymentService.mockSuccessfulWebhook('KMB-test'))
+    await expect(paymentService.handleWebhook(rawBody, signature, event))
       .resolves.toEqual({ alreadyProcessed: false });
-    await expect(paymentService.mockSuccessfulWebhook('KMB-test'))
+    await expect(paymentService.handleWebhook(rawBody, signature, event))
       .resolves.toEqual({ alreadyProcessed: true });
 
     expect(ledger.postTransaction).toHaveBeenCalledTimes(1);

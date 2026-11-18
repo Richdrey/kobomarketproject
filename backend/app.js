@@ -72,6 +72,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/wallet', walletRoutes);
 app.use('/api/v1/wallet', paymentRoutes);
 app.post('/api/v1/webhooks/paystack', paymentController.paystackWebhook);
+app.get('/api/v1/mock-payments/:reference', paymentController.mockPaymentPage);
 app.post('/api/v1/mock-payments/:reference/succeed', paymentController.mockPaymentSucceeded);
 app.use('/api/v1/admin/settings/exchange-rates', exchangeRateRoutes);
 app.use('/api/v1/vendors', vendorRoutes);

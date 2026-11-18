@@ -53,14 +53,24 @@ const querySchema = Joi.object({
 
 router.get('/', validate(querySchema, 'query'), controller.list);
 router.get('/:id/reviews', validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), validate(Joi.object({
   limit: Joi.number().integer().min(1).max(100),
   before: Joi.string().hex().length(24)
 }).unknown(false), 'query'), controller.listReviews);
-router.get('/:slug', controller.getBySlug);
+router.get('/:slug', validate(Joi.object({
+  slug: Joi.string().trim().lowercase().pattern(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(200).required()
+}), 'params'), controller.getBySlug);
 router.post('/', authenticate, requireRoles('vendor'), validate(createSchema), controller.create);
-router.patch('/:id', authenticate, requireRoles('vendor'), validate(productSchema.min(1)), controller.update);
-router.delete('/:id', authenticate, requireRoles('vendor'), controller.remove);
+router.patch('/:id', authenticate, requireRoles('vendor'), validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), validate(productSchema.min(1)), controller.update);
+router.delete('/:id', authenticate, requireRoles('vendor'), validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), controller.remove);
 router.post('/:id/reviews', authenticate, requireRoles('buyer'), validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), validate(Joi.object({
   rating: Joi.number().integer().min(1).max(5).required(),
   comment: Joi.string().trim().max(2000).allow('')
 }).unknown(false)), controller.createReview);

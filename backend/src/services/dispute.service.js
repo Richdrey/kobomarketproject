@@ -132,6 +132,7 @@ async function resolveDispute(disputeId, adminId, { resolution, note, refundKobo
       idempotencyKey: `dispute-resolution:${dispute.id}`,
       metadata: {
         disputeId: String(dispute.id),
+        subOrderId: String(dispute.sub_order_id),
         amountMinor: gross.toString(),
         refundMinor: refund.toString(),
         commissionMinor: commission.toString(),

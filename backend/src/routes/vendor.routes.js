@@ -14,6 +14,8 @@ router.post('/apply', authenticate, validate(Joi.object({
     accountName: Joi.string().trim().min(2).max(120).required()
   }).required()
 }).unknown(false)), controller.apply);
-router.get('/:id', controller.getById);
+router.get('/:id', validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), controller.getById);
 
 module.exports = router;

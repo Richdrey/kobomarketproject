@@ -7,8 +7,12 @@ const { authenticate, requireRoles } = require('../middleware/auth');
 const router = express.Router();
 router.use(authenticate, requireRoles('admin'));
 router.get('/', controller.listPending);
-router.patch('/:id/approve', controller.approve);
+router.patch('/:id/approve', validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), controller.approve);
 router.patch('/:id/reject', validate(Joi.object({
+  id: Joi.string().hex().length(24).required()
+}), 'params'), validate(Joi.object({
   reason: Joi.string().trim().min(1).max(1000).required()
 }).unknown(false)), controller.reject);
 

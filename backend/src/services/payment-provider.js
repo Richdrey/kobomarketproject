@@ -68,7 +68,11 @@ class MockPaymentProvider {
 
   async initialize({ email, amountKobo, reference }) {
     this.payments.set(reference, { email, amount: amountKobo, currency: 'NGN', status: 'pending' });
-    return { reference, checkoutUrl: `http://localhost:3020/mock-payments/${encodeURIComponent(reference)}` };
+    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3020';
+    return {
+      reference,
+      checkoutUrl: `${baseUrl}/api/v1/mock-payments/${encodeURIComponent(reference)}`
+    };
   }
 
   async verify(reference) {

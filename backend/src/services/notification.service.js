@@ -72,6 +72,24 @@ function publishFundsReleased(subOrderId) {
   });
 }
 
+function publishWalletFunding(reference) {
+  setImmediate(async () => {
+    try {
+      const intent = await pool.query(
+        'SELECT user_id, amount_kobo::text AS amount_kobo FROM funding_intents WHERE reference = $1',
+        [reference]
+      );
+      if (!intent.rowCount) return;
+      publish(intent.rows[0].user_id, 'WALLET_FUNDED', 'Your wallet funding was successful.', {
+        reference,
+        amountKobo: intent.rows[0].amount_kobo
+      });
+    } catch (error) {
+      logger.error({ error, reference }, 'Wallet funding notification recipient could not be loaded');
+    }
+  });
+}
+
 function publishDispute(disputeId, type, message) {
   setImmediate(async () => {
     try {
@@ -127,6 +145,7 @@ module.exports = {
   publishOrderPlaced,
   publishOrderShipped,
   publishFundsReleased,
+  publishWalletFunding,
   publishDispute,
   list,
   markRead,

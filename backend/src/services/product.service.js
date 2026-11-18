@@ -18,7 +18,7 @@ function priceRows(product, priceKobo, variants) {
   }];
 }
 
-async function storePrices(rows) {
+async function storePrices(rows, replaceProductPrices = false) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -30,6 +30,20 @@ async function storePrices(rows) {
          DO UPDATE SET price_kobo = EXCLUDED.price_kobo, updated_at = NOW()`,
         [row.productId, row.variantId, row.priceKobo]
       );
+    }
+    if (replaceProductPrices && rows.length) {
+      const variantIds = rows.map((row) => row.variantId).filter(Boolean);
+      if (variantIds.length) {
+        await client.query(
+          `DELETE FROM product_prices WHERE product_id = $1 AND NOT (variant_id = ANY($2::text[]))`,
+          [rows[0].productId, variantIds]
+        );
+      } else {
+        await client.query(
+          "DELETE FROM product_prices WHERE product_id = $1 AND variant_id <> ''",
+          [rows[0].productId]
+        );
+      }
     }
     await client.query('COMMIT');
   } catch (error) {
@@ -79,8 +93,13 @@ async function updateProduct(vendorId, productId, input) {
   if (input.tags !== undefined) product.tags = input.tags;
   if (input.isActive !== undefined) product.isActive = input.isActive;
   if (input.variants !== undefined) {
-    if (input.variants.some((variant) => !variant.id)) {
-      throw new AppError(400, 'VARIANT_ID_REQUIRED', 'Existing variants must include their IDs when updating');
+    const suppliedIds = new Set();
+    for (const variant of input.variants) {
+      if (!variant.id) continue;
+      if (suppliedIds.has(variant.id) || !product.variants.id(variant.id)) {
+        throw new AppError(400, 'INVALID_VARIANT', 'A supplied variant ID is duplicated or does not belong to this product');
+      }
+      suppliedIds.add(variant.id);
     }
     product.variants = input.variants.map(({ id, label, stockQuantity }) => ({
       ...(id ? { _id: id } : {}),
@@ -96,14 +115,18 @@ async function updateProduct(vendorId, productId, input) {
         if (!input.variants) {
           throw new AppError(400, 'VARIANT_PRICES_REQUIRED', 'Send variant IDs and prices to update variant prices');
         }
-        const rows = input.variants.map((variant) => {
-          const current = product.variants.id(variant.id);
-          if (!current) throw new AppError(400, 'INVALID_VARIANT', 'A supplied variant ID does not belong to this product');
+        const rows = input.variants.map((variant, index) => {
+          const current = product.variants[index];
+          if (variant.id && String(current._id) !== variant.id) {
+            throw new AppError(400, 'INVALID_VARIANT', 'A supplied variant ID does not belong to this product');
+          }
           return { productId: String(product._id), variantId: String(current._id), priceKobo: variant.priceKobo };
         });
-        await storePrices(rows);
+        await storePrices(rows, true);
       } else if (input.priceKobo !== undefined) {
-        await storePrices(priceRows(product, input.priceKobo));
+        await storePrices(priceRows(product, input.priceKobo), true);
+      } else if (input.variants !== undefined) {
+        throw new AppError(400, 'BASE_PRICE_REQUIRED', 'A base product price is required when removing all variants');
       }
     } catch (error) {
       await Product.replaceOne({ _id: product._id }, previous);

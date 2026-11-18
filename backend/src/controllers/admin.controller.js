@@ -49,6 +49,25 @@ const getWalletLedger = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { wallet: account.rows[0], ledger: entries.rows } });
 });
 
+const listTransactions = asyncHandler(async (req, res) => {
+  const result = await pool.query(
+    `SELECT t.id::text, t.reference, t.type, t.status, t.metadata, t.created_at,
+            COALESCE(jsonb_agg(jsonb_build_object(
+              'accountId', le.account_id::text, 'ownerType', a.owner_type, 'ownerId', a.owner_id,
+              'currency', a.currency, 'direction', le.direction, 'amountMinor', le.amount_minor::text
+            )) FILTER (WHERE le.id IS NOT NULL), '[]'::jsonb) AS entries
+       FROM transactions t
+       LEFT JOIN ledger_entries le ON le.transaction_id = t.id
+       LEFT JOIN accounts a ON a.id = le.account_id
+      WHERE ($1::bigint IS NULL OR t.id < $1::bigint)
+      GROUP BY t.id
+      ORDER BY t.id DESC
+      LIMIT $2`,
+    [req.query.before || null, req.query.limit]
+  );
+  res.json({ success: true, data: { transactions: result.rows } });
+});
+
 const setCommission = asyncHandler(async (req, res) => {
   const result = await pool.query(
     `INSERT INTO platform_settings (setting_key, setting_value, updated_by, updated_at)
@@ -81,14 +100,20 @@ const revenueReport = asyncHandler(async (req, res) => {
 const topVendorsReport = asyncHandler(async (req, res) => {
   const result = await pool.query(
     `SELECT s.vendor_id,
-            SUM(i.unit_price_kobo::numeric * i.quantity)::text AS completed_sales_kobo,
+              SUM(le.amount_minor)::text AS completed_sales_kobo,
             COUNT(DISTINCT s.id)::text AS completed_sub_orders
        FROM sub_orders s
-       JOIN order_items i ON i.sub_order_id = s.id
+         JOIN transactions t ON t.metadata->>'subOrderId' = s.id::text
+         JOIN ledger_entries le ON le.transaction_id = t.id AND le.direction = 'credit'
+         JOIN accounts a ON a.id = le.account_id
       WHERE s.status = 'COMPLETED'
         AND s.completed_at >= date_trunc('month', NOW())
+          AND t.status = 'posted'
+          AND t.type IN ('escrow_release', 'dispute_partial_refund', 'dispute_reject')
+          AND ((a.owner_type = 'user' AND a.owner_id = s.vendor_id) OR
+               (a.owner_type = 'system' AND a.owner_id = 'PLATFORM_REVENUE'))
       GROUP BY s.vendor_id
-      ORDER BY SUM(i.unit_price_kobo::numeric * i.quantity) DESC
+        ORDER BY SUM(le.amount_minor) DESC
       LIMIT 10`
   );
   res.json({ success: true, data: { vendors: result.rows } });
@@ -124,6 +149,7 @@ module.exports = {
   listUsers,
   freezeUser,
   getWalletLedger,
+  listTransactions,
   setCommission,
   revenueReport,
   topVendorsReport,

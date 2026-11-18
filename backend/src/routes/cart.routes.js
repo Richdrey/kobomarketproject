@@ -13,8 +13,12 @@ router.post('/items', validate(Joi.object({
   quantity: Joi.number().integer().min(1).max(100000000).required()
 }).unknown(false)), controller.add);
 router.patch('/items/:itemId', validate(Joi.object({
+  itemId: Joi.string().hex().length(24).required()
+}), 'params'), validate(Joi.object({
   quantity: Joi.number().integer().min(1).max(100000000).required()
 }).unknown(false)), controller.update);
-router.delete('/items/:itemId', controller.remove);
+router.delete('/items/:itemId', validate(Joi.object({
+  itemId: Joi.string().hex().length(24).required()
+}), 'params'), controller.remove);
 
 module.exports = router;

@@ -47,6 +47,7 @@ const routes = [
   ['patch', '/admin/vendors/{id}/approve', 'Approve a vendor', 'Administration', true],
   ['patch', '/admin/vendors/{id}/reject', 'Reject a vendor', 'Administration', true],
   ['get', '/admin/wallets/{id}/ledger', 'View wallet ledger entries', 'Administration', true],
+  ['get', '/admin/transactions', 'List platform transactions and entries', 'Administration', true],
   ['patch', '/admin/settings/commission', 'Set the commission rate', 'Administration', true],
   ['get', '/admin/settings/exchange-rates', 'List exchange-rate snapshots', 'Administration', true],
   ['patch', '/admin/settings/exchange-rates', 'Record an exchange-rate snapshot', 'Administration', true],
@@ -65,6 +66,22 @@ for (const [method, path, summary, tag, authenticated] of routes) {
     required: true,
     schema: { type: 'string' }
   }));
+  if (['/wallet/fund', '/orders/checkout', '/payouts'].includes(path) && method === 'post') {
+    parameters.push({
+      name: 'Idempotency-Key',
+      in: 'header',
+      required: true,
+      schema: { type: 'string', maxLength: 200 }
+    });
+  }
+  if (path === '/webhooks/paystack') {
+    parameters.push({
+      name: 'x-paystack-signature',
+      in: 'header',
+      required: true,
+      schema: { type: 'string', pattern: '^[a-fA-F0-9]{128}$' }
+    });
+  }
   paths[path][method] = {
     tags: [tag],
     summary,
