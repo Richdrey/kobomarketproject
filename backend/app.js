@@ -24,6 +24,7 @@ const notificationRoutes = require('./src/routes/notification.routes');
 const disputeRoutes = require('./src/routes/dispute.routes');
 const payoutRoutes = require('./src/routes/payout.routes');
 const adminRoutes = require('./src/routes/admin.routes');
+const userRoutes = require('./src/routes/user.routes');
 const userController = require('./src/controllers/user.controllers-v2');
 const { authenticate } = require('./src/middleware/auth');
 
@@ -69,6 +70,7 @@ app.get('/health', asyncHandler(async (req, res) => {
 app.get('/api/v1/users/me', authenticate, userController.getMe);
 app.patch('/api/v1/users/me', authenticate, userController.validateProfileUpdate, userController.updateMe);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/wallet', walletRoutes);
 app.use('/api/v1/wallet', paymentRoutes);
 app.post('/api/v1/webhooks/paystack', paymentController.paystackWebhook);

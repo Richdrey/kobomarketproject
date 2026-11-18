@@ -4,7 +4,7 @@ const connectDB = require('./src/configs/db');
 const pool = require('./src/configs/postgres');
 const app = require('./app');
 const { logger } = require('./src/middleware/logger');
-const { provisionPendingWallets } = require('./src/services/wallet.service');
+const { provisionPendingWallets } = require('./src/services/wallet.service')
 
 async function start() {
   if (!process.env.JWT_ACCESS_SECRET || !process.env.JWT_REFRESH_SECRET) {

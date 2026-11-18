@@ -1,6 +1,6 @@
 # KoboMarket backend
 
-KoboMarket is a backend-only multi-vendor marketplace API built with Node.js, Express, MongoDB, and PostgreSQL. There is no frontend in this project.
+KoboMarket is a backend-only multi-vendor marketplace API built with Node.js, Express, MongoDB, and PostgreSQL.
 
 ## Database ownership
 
